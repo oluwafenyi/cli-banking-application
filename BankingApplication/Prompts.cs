@@ -6,8 +6,15 @@ using BankingApplication.Models.Transactions;
 
 namespace BankingApplication
 {
+    /// <summary>
+    /// Static class housing micro interactions
+    /// </summary>
     public static class Prompts
     {
+        /// <summary>
+        /// Method for prompting the user for an integer input, used mainly for menu selections
+        /// </summary>
+        /// <returns>integer entered by user or 0 if user input is not a valid integer</returns>
         public static int GetSelection()
         {
             int mode = 0;
@@ -24,6 +31,11 @@ namespace BankingApplication
             return mode;
         }
         
+        /// <summary>
+        /// Method for prompts for user creation
+        /// </summary>
+        /// <returns>new User object</returns>
+        /// <exception cref="ToTopMenu">Exception is raised if user enters "#" in any of the prompts</exception>
         public static User RegisterNewUser()
         {
             string firstName;
@@ -75,6 +87,12 @@ Here is what we have:
             return user;
         }
         
+        /// <summary>
+        /// Method for prompts to create an account for a user, user is presented with different account types to pick
+        /// from
+        /// </summary>
+        /// <param name="user">User object for which we want to create the account</param>
+        /// <returns>newly created Account object</returns>
         public static Account CreateBankAccount(User user)
         {
             bool confirmed;
@@ -115,6 +133,10 @@ Here is what we have:
             return account;
         }
 
+        /// <summary>
+        /// Method for prompts to close an account associated with a user
+        /// </summary>
+        /// <param name="user">associated User object</param>
         public static void CloseBankAccount(User user)
         {
             bool complete = false;
@@ -159,6 +181,11 @@ Here is what we have:
             }
         }
 
+        /// <summary>
+        /// Method for prompts to present user with accounts to select from
+        /// </summary>
+        /// <param name="user">associated User object</param>
+        /// <returns>selected Account object</returns>
         public static Account AccountSelection(User user)
         {
             List<string> accountList = new List<string>(user.Accounts);
@@ -184,8 +211,13 @@ Here is what we have:
             }
         }
 
+        /// <summary>
+        /// Method for prompts to facilitate a withdrawal
+        /// </summary>
+        /// <param name="account">associated Account object</param>
         public static void Withdrawal(Account account)
         {
+            Console.WriteLine($"Withdrawal limit: Dr{account.WithdrawalLimit:0.00}");
             decimal amount;
             while (true)
             {
@@ -206,10 +238,22 @@ Here is what we have:
                     }
                 }
             }
-            Transaction transaction = new Debit(amount, "Withdrawal", account);
+
+            Transaction transaction;
+            try
+            {
+                transaction = new Debit(amount, "Withdrawal", account);
+            }
+            catch (DebitLimitExceededException)
+            {
+                Console.WriteLine("\nWithdrawal failed: amount greater than transaction limit");
+                Withdrawal(account);
+                return;
+            }
+            
             if (!transaction.Status)
             {
-                Console.WriteLine("\nWithdrawal failed, amount greater than account balance.");
+                Console.WriteLine("\nWithdrawal failed: amount greater than account balance.");
             }
             else
             {
@@ -218,6 +262,10 @@ Here is what we have:
             Database.InsertTransactionHistoryRecord(account.AccountNumber, transaction);
         }
         
+        /// <summary>
+        /// Method for prompts to facilitate a deposit action
+        /// </summary>
+        /// <param name="account">associated Account object</param>
         public static void Deposit(Account account)
         {
             decimal amount;
@@ -238,14 +286,24 @@ Here is what we have:
                     {
                         throw;
                     }
-
                 }
             }
             Transaction transaction = new Credit(amount, "Deposit", account);
             Database.InsertTransactionHistoryRecord(account.AccountNumber, transaction);
-            Console.WriteLine($"Deposit successful, new account balance is {account.Balance:0.00}");
+            if (transaction.Status)
+            {
+                Console.WriteLine($"Deposit successful, new account balance is Dr{account.Balance:0.00}");
+            }
+            else
+            {
+                Console.WriteLine("An error occurred with your transaction.");
+            }
         }
 
+        /// <summary>
+        /// Method for prompts to facilitate a transfer to an account in the current bank
+        /// </summary>
+        /// <param name="account">associated Account object</param>
         public static void Transfer(Account account)
         {
             decimal amount = Utils.ReadCurrencyValue("Enter amount to transfer: ");
@@ -277,8 +335,17 @@ Here is what we have:
                     }
                     Console.WriteLine("invalid passcode");
                 }
-                
-                Transaction debit = new Debit(amount, $"Transfer to {recipient.Owner}/{recipient.AccountNumber}", account);
+
+                Transaction debit = null;
+                try
+                {
+                    debit = new Debit(amount, $"Transfer to {recipient.Owner}/{recipient.AccountNumber}", account);
+                }
+                catch (DebitLimitExceededException)
+                {
+                    Console.WriteLine("Transaction failed: amount greater than transaction limit");
+                    break;
+                }
                 if (debit.Status)
                 {
                     Transaction credit = new Credit(amount, $"Transfer from {account.Owner}/{account.AccountNumber}", recipient);
@@ -288,12 +355,16 @@ Here is what we have:
                 }
                 else
                 {
-                    Console.WriteLine("You have insufficient funds to complete this transaction");
+                    Console.WriteLine("Transaction failed: You have insufficient funds to complete this transaction");
                 }
                 break;
             }
         }
 
+        /// <summary>
+        /// Method for prompts to facilitate a transfer to an account in another bank
+        /// </summary>
+        /// <param name="account">associated Account object</param>
         public static void TransferToOtherBank(Account account)
         {
             decimal amount = Utils.ReadCurrencyValue("Enter amount to transfer: ");

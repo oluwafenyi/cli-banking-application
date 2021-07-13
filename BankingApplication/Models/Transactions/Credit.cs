@@ -1,3 +1,4 @@
+using System;
 using BankingApplication.Models.Accounts;
 
 namespace BankingApplication.Models.Transactions
@@ -12,8 +13,15 @@ namespace BankingApplication.Models.Transactions
 
         private bool _credit(decimal amount)
         {
-            Account.Credit(amount);
-            return true;
+            try
+            {
+                Account.Credit(amount);
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
     }
 }

@@ -1,5 +1,4 @@
 using System;
-using System.Text.RegularExpressions;
 
 #nullable enable
 
@@ -7,23 +6,24 @@ namespace BankingApplication.Models.Accounts
 {
     public abstract class Account
     {
+        public decimal WithdrawalLimit = 1_000_000m;
         protected static readonly byte Savings = 0;
         protected static readonly byte Current = 1; 
         public readonly string AccountNumber;
         public readonly User Owner;
-        public readonly byte AccountType;
+        private readonly byte _accountType;
         public decimal Balance = 0m;
         
         protected Account(User owner, byte accountType, long accountTypeCount)
         {
             Owner = owner;
-            AccountType = accountType;
-            AccountNumber = $"{AccountType}".PadLeft(2, '0') + $"{accountTypeCount}".PadLeft(10, '0');
+            _accountType = accountType;
+            AccountNumber = $"{_accountType}".PadLeft(2, '0') + $"{accountTypeCount}".PadLeft(10, '0');
         }
 
         public override string ToString()
         {
-            string prefix = AccountType == Savings ? "Savings - " : "Current - ";
+            string prefix = _accountType == Savings ? "Savings - " : "Current - ";
             return prefix + $"{AccountNumber}: Dr{Balance:0.00}";
         }
 
@@ -55,6 +55,11 @@ namespace BankingApplication.Models.Accounts
             if (amount <= 0)
             {
                 throw new ArgumentOutOfRangeException();
+            }
+
+            if (amount > WithdrawalLimit)
+            {
+                throw new DebitLimitExceededException();
             }
             
             if (Balance > amount)

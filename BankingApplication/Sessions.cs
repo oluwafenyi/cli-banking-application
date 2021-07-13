@@ -5,8 +5,16 @@ using BankingApplication.Models.Accounts;
 
 namespace BankingApplication
 {
-    public class Sessions
+    /// <summary>
+    /// Static class housing user sessions.
+    /// </summary>
+    public static class Sessions
     {
+        
+        /// <summary>
+        /// Creates a new interaction session for an authenticated user
+        /// </summary>
+        /// <param name="user">authenticated user</param>
         public static void NewSession(User user)
         {
             while (true)

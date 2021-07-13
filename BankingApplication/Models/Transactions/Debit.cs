@@ -13,7 +13,7 @@ namespace BankingApplication.Models.Transactions
         private bool _debit(decimal amount)
         {
             try
-            { 
+            {
                 Account.Debit(amount);
                 return true;
             }
